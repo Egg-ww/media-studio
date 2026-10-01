@@ -166,8 +166,10 @@ body { background-color: var(--bg); color: var(--text); min-height: 100vh; displ
 .seek-bar { flex: 1; -webkit-appearance: none; appearance: none; height: 6px; background: rgba(255,255,255,0.25); border-radius: 3px; outline: none; cursor: pointer; }
 .seek-bar::-webkit-slider-thumb { -webkit-appearance: none; width: 14px; height: 14px; border-radius: 50%; background: var(--accent); cursor: pointer; box-shadow: 0 0 6px var(--accent); }
 
-.modal-bottom-bar { padding: 18px 24px 30px; display: flex; justify-around: align-items: center; background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, transparent 100%); z-index: 10; color:#fff; }
-.bar-btn { background: none; border: none; color: #fff; display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 0.72rem; cursor: pointer; }
+/* 🌟 左下のごちゃつきをスッキリ解消した下部バー */
+.modal-bottom-bar { padding: 18px 28px 30px; display: flex; justify-content: space-between; align-items: center; background: linear-gradient(0deg, rgba(0,0,0,0.85) 0%, transparent 100%); z-index: 10; color:#fff; max-width: 500px; margin: 0 auto; width: 100%; }
+.bar-btn { background: none; border: none; color: #fff; display: flex; flex-direction: column; align-items: center; gap: 6px; font-size: 0.72rem; cursor: pointer; transition: opacity 0.2s; }
+.bar-btn:hover { opacity: 0.8; }
 
 .property-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.6); backdrop-filter: blur(6px); z-index: 600; display: none; align-items: center; justify-content: center; padding: 20px; }
 .property-modal.active { display: flex; }
@@ -245,6 +247,6 @@ body { background-color: var(--bg); color: var(--text); min-height: 100vh; displ
 .mob-tab.active { color: var(--accent); font-weight: 700; }
 @media (min-width: 768px) { .sidebar { display: flex; } .mobile-nav { display: none; } .content-box { padding-bottom: 40px; } }
 
-.toast { position: fixed; top: 24px; left: 50%; transform: translateX(-50%); background: rgba(30, 41, 59, 0.95); border: 1px solid rgba(255,255,255,0.15); backdrop-filter: blur(10px); padding: 8px 20px; border-radius: 20px; font-size: 0.82rem; color: #fff; display: flex; align-items: center; gap: 8px; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 700; }
+.toast { position: fixed; top: 24px; left: 50%; transform: translateX(-50%); background: rgba(30, 41, 59, 0.95); border: 1px solid rgba(255,255,255,0.15); backdrop-filter: blur(10px); padding: 8px 20px; border-radius: 20px; font-size: 0.82rem; color: #fff; display: flex; align-items: center; gap: 10px; opacity: 0; pointer-events: none; transition: opacity 0.3s; z-index: 700; }
 .toast.show { opacity: 1; }
 #fileInput, #brainFileInput { display: none !important; }
