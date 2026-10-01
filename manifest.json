@@ -1,0 +1,15 @@
+{
+  "name": "Media Studio Console",
+  "short_name": "MediaStudio",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#0f1015",
+  "theme_color": "#2563eb",
+  "icons": [
+    {
+      "src": "https://cdn-icons-png.flaticon.com/512/3659/3659738.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
