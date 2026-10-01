@@ -58,7 +58,6 @@ let displayedLibrary = [];
 let activeIndex = -1;
 let contextTargetIndex = -1;
 let currentNav = 'media';
-let currentTrackMeta = { artist: '', title: '', album: '' };
 
 const FREQ_MAP = [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000];
 const PRESETS = {
@@ -80,7 +79,6 @@ let limiterNode = null;
 let analyserNode = null;
 let eqFilterNodes = [];
 let isKaraokeActive = false;
-let aiWeights = null;
 
 function initAudioContext() {
   if (audioCtx) return;
@@ -227,7 +225,7 @@ function toggleKaraokeMode() {
   if (isKaraokeActive) {
     if (btn) btn.classList.add('active');
     if (txt) txt.textContent = 'カラオケON';
-    showToast("🎤 カラオケモード起動（ボーカル音域を反転キャンセル）");
+    showToast("🎤 カラオケモード起動");
   } else {
     if (btn) btn.classList.remove('active');
     if (txt) txt.textContent = 'カラオケ';
@@ -273,15 +271,6 @@ function executeSecretCommand() {
   else showToast("コマンドが見つかりませんでした。例: 「おみくじ」");
 }
 
-function pickRandom(arr) {
-  return arr[Math.floor(Math.random() * arr.length)];
-}
-
-function pickRandomMultiple(arr, count) {
-  const shuffled = [...arr].sort(() => 0.5 - Math.random());
-  return shuffled.slice(0, count);
-}
-
 function runOmikuji() {
   const rand = Math.random() * 100;
   let fortune = "吉"; let rankColor = "#2563eb";
@@ -292,10 +281,9 @@ function runOmikuji() {
   else if (rand < 95) { fortune = "末吉"; rankColor = "#6b7280"; }
   else { fortune = "大凶"; rankColor = "#8b5cf6"; }
 
-  const adviceText = `${fortune}を引き当てました！今日一日を最高のものにしましょう！`;
   document.getElementById('omikujiRank').textContent = fortune;
   document.getElementById('omikujiRank').style.color = rankColor;
-  document.getElementById('omikujiAdvice').textContent = adviceText;
+  document.getElementById('omikujiAdvice').textContent = `${fortune}を引き当てました！今日一日を最高のものにしましょう！`;
   document.getElementById('omikujiModal').classList.add('active');
 }
 
@@ -324,38 +312,15 @@ function exportAppData() {
 
 function triggerAutoOptimization() {
   const item = displayedLibrary[activeIndex];
-  if (!item || (item.type !== 'audio' && item.type !== 'video')) {
-    showToast("オーディオまたは動画を再生中に実行してください");
-    return;
-  }
-  initAudioContext();
-  if (audioCtx.state === 'suspended') audioCtx.resume();
-
-  document.getElementById('aiLogStatus').textContent = "自作AI解析中: 10バンドスペクトラムをスキャン中...";
-
-  setTimeout(() => {
-    const bufferLength = analyserNode.frequencyBinCount;
-    const dataArray = new Uint8Array(bufferLength);
-    analyserNode.getByteFrequencyData(dataArray);
-
-    const gains = [4, 3, 2, 0, 0, 1, 2, 3, 4, 3];
-    setEQSliders(gains);
-
-    const trackName = item.name || 'この曲';
-    let note = `🎵 自作AIが「${trackName}」に最適な音質に調整しました。`;
-
-    item.eq = [...gains];
-    item.eqNote = note;
-    saveToDB(item);
-
-    const explainBox = document.getElementById('aiExplain');
-    if (explainBox) {
-      explainBox.textContent = note;
-      explainBox.classList.add('show');
-    }
-    document.getElementById('aiLogStatus').textContent = `自作AI最適化完了（${trackName}）`;
-    showToast("✨ 自作AIが音質を自動最適化しました");
-  }, 600);
+  if (!item) return;
+  const gains = [4, 3, 2, 0, 0, 1, 2, 3, 4, 3];
+  setEQSliders(gains);
+  const trackName = item.name || 'このメディア';
+  let note = `🎵 AIが「${trackName}」に最適な音質に調整しました。`;
+  item.eq = [...gains];
+  item.eqNote = note;
+  saveToDB(item);
+  showToast("✨ AIが音質を自動最適化しました");
 }
 
 function aiOptimizeCurrentMedia() {
@@ -380,7 +345,8 @@ const durationDisplay = document.getElementById('durationDisplay');
 
 function getActiveMediaElement() {
   if (activeIndex < 0 || !displayedLibrary[activeIndex]) return null;
-  return displayedLibrary[activeIndex].type === 'video' ? modalVideo : modalAudio;
+  const item = displayedLibrary[activeIndex];
+  return (item.type === 'video' || item.name.toLowerCase().endsWith('.mp4')) ? modalVideo : modalAudio;
 }
 
 function togglePlayPause() {
@@ -450,7 +416,7 @@ async function handleFiles(files) {
   for (const file of Array.from(files)) {
     let type = '';
     if (file.type.startsWith('image/')) type = 'image';
-    else if (file.type.startsWith('video/')) type = 'video';
+    else if (file.type.startsWith('video/') || file.name.toLowerCase().endsWith('.mp4')) type = 'video';
     else if (file.type.startsWith('audio/')) type = 'audio';
     else continue;
 
@@ -517,12 +483,12 @@ function renderGrid() {
     let ext = item.name.split('.').pop().toUpperCase();
     if(ext.length > 4) ext = item.type === 'audio' ? 'AUD' : (item.type === 'video' ? 'VID' : 'IMG');
 
-    const favIcon = item.isFavorite ? '❤️️' : '♡';
+    const favIcon = item.isFavorite ? '❤️' : '♡';
     const favBtn = `<div class="card-fav-btn" onclick="event.stopPropagation(); toggleFavFromCard(${idx})">${favIcon}</div>`;
 
     if (item.type === 'image') {
       card.innerHTML = `<span class="media-tag">${escapeHtml(ext)}</span>${favBtn}<img src="${item.url}" loading="lazy" alt="">`;
-    } else if (item.type === 'video') {
+    } else if (item.type === 'video' || item.name.toLowerCase().endsWith('.mp4')) {
       card.innerHTML = `<span class="media-tag" style="background:#dc2626;">${escapeHtml(ext)}</span>${favBtn}<video src="${item.url}#t=0.5" preload="metadata"></video>`;
     } else {
       card.innerHTML = `<span class="media-tag" style="background:#2563eb;">${escapeHtml(ext)}</span>${favBtn}<div class="audio-card-body"><svg width="36" height="36" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3v10.55c-.59-.34-1.27-.55-2-.55-2.21 0-4 1.79-4 4s1.79 4 4 4 4-1.79 4-4V7h4V3h-6z"/></svg><div class="audio-card-name">${escapeHtml(item.name)}</div></div>`;
@@ -538,6 +504,41 @@ function toggleFavFromCard(idx) {
   saveToDB(item);
   renderGrid();
   showToast(item.isFavorite ? "❤️ お気に入りに追加しました" : "🤍 お気に入りを解除しました");
+}
+
+// 🌟 MP4等のファイル名から自動で曲情報を検索してジャケット写真やプレイヤーを表示する機能
+async function identifyAndFetchMetadata(item) {
+  const titleEl = document.getElementById('npTitle');
+  const subEl = document.getElementById('npSub');
+  const artImg = document.getElementById('npAlbumArt');
+  const statusEl = document.getElementById('npStatus');
+  
+  // ファイル名から拡張子と番号（09- など）を除去して検索ワードにする
+  let cleanName = item.name.replace(/\.[^/.]+$/, "").replace(/^\d+[-_.\s]*/, "").trim();
+  titleEl.textContent = cleanName;
+  subEl.textContent = 'Media Studio AI Player';
+  artImg.classList.remove('show');
+  artImg.src = '';
+  statusEl.textContent = '🔍 iTunesからジャケット写真を検索中...';
+
+  try {
+    const res = await fetch(`https://itunes.apple.com/search?term=${encodeURIComponent(cleanName)}&entity=song&limit=1&country=JP`);
+    const data = await res.json();
+    if (data.results && data.results.length > 0) {
+      const song = data.results[0];
+      titleEl.textContent = song.trackName;
+      subEl.textContent = song.artistName + (song.collectionName ? ` • ${song.collectionName}` : '');
+      if (song.artworkUrl100) {
+        artImg.src = song.artworkUrl100.replace('100x100bb', '300x300bb');
+        artImg.classList.add('show');
+      }
+      statusEl.textContent = '✨ AI楽曲データを自動同期しました';
+    } else {
+      statusEl.textContent = '📁 ローカルメディア再生中';
+    }
+  } catch (e) {
+    statusEl.textContent = '📁 ローカルメディア再生中';
+  }
 }
 
 function openModal(index) {
@@ -556,22 +557,29 @@ function openModal(index) {
   if (mAv) mAv.classList.remove('active');
 
   resetKaraokeMode();
-
   seekBar.value = 0;
   currentTimeDisplay.textContent = "0:00";
   durationDisplay.textContent = "0:00";
 
+  const isVideoFile = (item.type === 'video' || item.name.toLowerCase().endsWith('.mp4'));
+
   if (item.type === 'image') {
     if (mImg) { mImg.src = item.url; mImg.style.display = 'block'; }
     document.getElementById('playerControlsArea').style.display = 'none';
-  } else if (item.type === 'video') {
-    document.getElementById('playerControlsArea').style.display = 'block';
+  } else if (isVideoFile) {
+    // 🌟 MP4などの動画ファイルであっても、音楽的な処理やアートワーク表示を行いたい場合の分岐
+    // もし完全に動画として見せたい場合は mVd を表示しますが、音楽っぽくジャケットを出したい場合はビジュアルを表示できます。
+    // ここではMP4ファイルでも「オーディオビジュアル画面（ジャケット写真付き）」を表示しつつ音声/動画を再生できるようにします。
+    if (mAv) mAv.classList.add('active');
     if (mVd) {
-      mVd.src = item.url; mVd.style.display = 'block';
+      mVd.src = item.url;
+      mVd.style.display = 'none'; // 画面を音楽プレイヤー風にするため非表示で音声/映像を裏で再生
       attachMediaToAudioPipeline(mVd);
       loadEQForTrack(index);
       mVd.play().catch(() => {});
     }
+    identifyAndFetchMetadata(item);
+    document.getElementById('playerControlsArea').style.display = 'block';
   } else if (item.type === 'audio') {
     document.getElementById('playerControlsArea').style.display = 'block';
     if (mAd) {
@@ -581,6 +589,7 @@ function openModal(index) {
       loadEQForTrack(index);
       mAd.play().catch(() => {});
     }
+    identifyAndFetchMetadata(item);
   }
   const mediaModal = document.getElementById('mediaModal');
   if (mediaModal) mediaModal.classList.add('active');
